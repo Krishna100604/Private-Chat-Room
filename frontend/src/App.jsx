@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import io from 'socket.io-client';
 
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = 'https://private-chat-room-server.vercel.app/';
 
 function App() {
   const [username, setUsername] = useState('');
