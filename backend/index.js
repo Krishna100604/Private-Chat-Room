@@ -127,6 +127,9 @@ app.post('/upload_file', upload.single('file'), (req, res) => {
     res.status(404).send('Room not found');
   }
 });
+app.get("/", (req, res) => {
+  res.send("App is running perfect");
+});
 
 app.get('/messages/:roomId', (req, res) => {
   const { roomId } = req.params;
@@ -136,9 +139,7 @@ app.get('/messages/:roomId', (req, res) => {
     res.status(404).send('Room not found');
   }
 });
-app.get("/", (req, res) => {
-  res.send("App is running perfect");
-});
+
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
