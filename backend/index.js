@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -6,22 +5,31 @@ const multer = require('multer');
 const path = require('path');
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-
-const PORT = process.env.PORT || 5000;
-
-let rooms = {};
-
 const http = require('http');
 const server = http.createServer(app);
 
 const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: 'https://private-chat-room-app.vercel.app',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   },
 });
+
+app.use(cors({
+  origin: 'https://private-chat-room-app.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+app.options('*', cors());
+
+app.use(bodyParser.json());
+
+const PORT = process.env.PORT || 5000;
+let rooms = {};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -127,6 +135,7 @@ app.post('/upload_file', upload.single('file'), (req, res) => {
     res.status(404).send('Room not found');
   }
 });
+
 app.get("/", (req, res) => {
   res.send("App is running perfect");
 });
@@ -139,8 +148,6 @@ app.get('/messages/:roomId', (req, res) => {
     res.status(404).send('Room not found');
   }
 });
-
-
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
