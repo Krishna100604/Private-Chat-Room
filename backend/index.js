@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
@@ -12,19 +11,11 @@ const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
     origin: 'https://private-chat-room-app.vercel.app',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'X-Requested-With', 'Accept', 'Accept-Version', 'Content-Length', 'Content-MD5', 'Date', 'X-Api-Version'],
     credentials: true,
   },
 });
-
-app.use(cors({
-  origin: 'https://private-chat-room-app.vercel.app',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}));
-app.options('*', cors());
 
 app.use(bodyParser.json());
 
@@ -40,6 +31,18 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+
+const allowCors = (fn) => async (req, res) => {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', 'https://private-chat-room-app.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  return await fn(req, res);
+};
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -86,21 +89,26 @@ io.on('connection', (socket) => {
   });
 });
 
-app.post('/create_room', (req, res) => {
+const handler = (req, res) => {
+  const d = new Date();
+  res.end(d.toString());
+};
+
+app.post('/create_room', allowCors(async (req, res) => {
   const { roomId } = req.body;
   if (!roomId) {
     return res.status(400).send('Room ID is required');
   }
-  
+
   if (rooms[roomId]) {
     return res.status(400).send('Room already exists');
   }
-  
+
   rooms[roomId] = { users: [], messages: [] };
   res.status(201).send('Room created');
-});
+}));
 
-app.post('/join_room', (req, res) => {
+app.post('/join_room', allowCors(async (req, res) => {
   const { roomId, username } = req.body;
   if (!rooms[roomId]) {
     return res.status(404).send('Room not found');
@@ -109,9 +117,9 @@ app.post('/join_room', (req, res) => {
     return res.status(400).send('User already in the room');
   }
   res.status(200).send('Joined room');
-});
+}));
 
-app.post('/leave_room', (req, res) => {
+app.post('/leave_room', allowCors(async (req, res) => {
   const { roomId, username } = req.body;
   if (rooms[roomId]) {
     rooms[roomId].users = rooms[roomId].users.filter(user => user !== username);
@@ -122,9 +130,9 @@ app.post('/leave_room', (req, res) => {
   } else {
     res.status(404).send('Room not found');
   }
-});
+}));
 
-app.post('/upload_file', upload.single('file'), (req, res) => {
+app.post('/upload_file', upload.single('file'), allowCors(async (req, res) => {
   const { roomId, username } = req.body;
   if (rooms[roomId]) {
     const message = { user: username, fileName: req.file.filename };
@@ -134,20 +142,18 @@ app.post('/upload_file', upload.single('file'), (req, res) => {
   } else {
     res.status(404).send('Room not found');
   }
-});
+}));
 
-app.get("/", (req, res) => {
-  res.send("App is running perfect");
-});
+app.get("/", allowCors(handler));
 
-app.get('/messages/:roomId', (req, res) => {
+app.get('/messages/:roomId', allowCors(async (req, res) => {
   const { roomId } = req.params;
   if (rooms[roomId]) {
     res.json(rooms[roomId].messages);
   } else {
     res.status(404).send('Room not found');
   }
-});
+}));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
