@@ -136,6 +136,10 @@ app.get('/messages/:roomId', (req, res) => {
     res.status(404).send('Room not found');
   }
 });
+app.get("/", (req, res) => {
+  res.send("App is running perfect");
+});
+
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
